@@ -1,51 +1,53 @@
-import { Reducer } from "redux"
-import { ProductsState, ProductsActionTypes, Product } from "./types"
-import { ActionType, createAsyncAction, getType } from "typesafe-actions"
+import { ProductsState, InnerProductsState, Product } from "./types"
+import { getType } from "typesafe-actions"
 import { ApplicationState } from "../"
+import actions, { ProductsAction } from "./actions"
+import pagination from "./pagination"
+import { combineReducers, Reducer } from "redux"
 
-const initialState: ProductsState = {
-  data: [],
-  isLoading: false
+const initialState: InnerProductsState = {
+  data: {}
 }
 
-const fetchProducts = createAsyncAction(
-  ProductsActionTypes.FETCH_REQUEST,
-  ProductsActionTypes.FETCH_SUCCESS,
-  ProductsActionTypes.FETCH_ERROR
-)<void, Product[], Error>()
-
-type ProductsAction = ActionType<typeof fetchProducts>
-
-const reducer: Reducer<ProductsState, ProductsAction> = (
-  state = initialState,
-  action
-) => {
+const productsReducer = (state = initialState, action: ProductsAction): InnerProductsState => {
   switch (action.type) {
-    case getType(fetchProducts.request): {
-      return { ...state, isLoading: true, error: undefined }
+    case getType(actions.searchProducts.request): {
+      return { ...state, searchTerm: action.payload }
     }
-    case getType(fetchProducts.success): {
+    case getType(actions.updateProducts): {
+      const dataMap = action.payload.reduce((acc, value) => ({ ...acc, [value.id]: value }), {})
       return {
         ...state,
-        isLoading: false,
-        error: undefined,
-        data: action.payload
+        data: { ...state.data, ...dataMap }
       }
     }
-    case getType(fetchProducts.failure): {
-      return { ...state, isLoading: false, error: action.payload }
+    case getType(actions.searchProducts.failure): {
+      return { ...state }
     }
     default:
       return state
   }
 }
+const getProductList = (state: ApplicationState) => state.products.inner.data
 
-const getProductList = (state: ApplicationState) => state.products.data
+const getCurrentPageItems = (state: ApplicationState): Product[] => {
+  const { data } = state.products.inner
+  const { pagesMap, currentPage } = state.products.pagination
+  if (!pagesMap[currentPage]) {
+    return []
+  }
+  const ids = pagesMap[currentPage].ids as string[]
+  return ids.map(id => data[id.toString()])
+}
 
-export const actions = {
-  requestProducts: fetchProducts.request
+const getCurrentPage = (state: ApplicationState): number => {
+  return state.products.pagination.currentPage
 }
-export const selectors = {
-  getProductList
-}
+
+const reducer: Reducer<ProductsState> = combineReducers({
+  pagination: pagination.reducer,
+  inner: productsReducer
+})
+
+export const selectors = { getProductList, getCurrentPageItems, getCurrentPage }
 export default reducer
