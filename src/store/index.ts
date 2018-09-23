@@ -1,7 +1,8 @@
 import { Store, createStore, applyMiddleware, combineReducers } from "redux"
 import { composeWithDevTools } from "redux-devtools-extension"
 import { createLogger } from "redux-logger"
-import { productsReducer, ProductsState } from "./products"
+import createSagaMiddleware from "redux-saga"
+import { productsReducer, productsSaga, ProductsState } from "./products"
 
 export interface ApplicationState {
   products: ProductsState
@@ -11,11 +12,10 @@ export const rootReducer = combineReducers<ApplicationState>({
   products: productsReducer
 })
 
-const middlewares = [createLogger()]
+const sagaMiddleware = createSagaMiddleware()
+const middlewares = [createLogger(), sagaMiddleware]
 
-const configureStore = (
-  initialState?: ApplicationState
-): Store<ApplicationState> => {
+const configureStore = (initialState?: ApplicationState): Store<ApplicationState> => {
   const composeEnhancers = composeWithDevTools({})
 
   const store = createStore(
@@ -23,6 +23,8 @@ const configureStore = (
     initialState!,
     composeEnhancers(applyMiddleware(...middlewares))
   )
+
+  sagaMiddleware.run(productsSaga)
 
   return store
 }
