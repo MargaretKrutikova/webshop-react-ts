@@ -1,13 +1,12 @@
 import { createPaginatedDataReducer } from "./reducer"
-import { PaginatedDataItem } from "./types"
 import { GetPaginationState, createPaginationSagas } from "./sagas"
 
-export const createPaginatedDataModule = <T extends PaginatedDataItem>(
+export const createPaginatedDataModule = (
   module: string,
   maxCacheMs: number,
-  getPaginationState: GetPaginationState<T>
+  getPaginationState: GetPaginationState
 ) => {
-  const { reducer, actions } = createPaginatedDataReducer<T>(module)
+  const { reducer, actions } = createPaginatedDataReducer(module)
   const saga = createPaginationSagas(module, maxCacheMs, getPaginationState)
 
   return { actions, reducer, saga }

@@ -1,16 +1,15 @@
-import { PaginatedData, PaginatedDataItem, PageCache } from "./types"
+import { PaginatedData, PageCache } from "./types"
 import { ActionType, getType } from "typesafe-actions"
 import createPaginationActions from "./actions"
 
-const getInitialState = <T extends PaginatedDataItem>(): PaginatedData<T> => ({
+const getInitialState = (): PaginatedData => ({
   currentPage: 1,
-  data: {},
   itemsPerPage: 10,
   pagesMap: {},
   totalItems: 0
 })
 
-const getPageCacheInitialState = <T extends PaginatedDataItem>(): PageCache<T> => ({
+const getPageCacheInitialState = (): PageCache => ({
   error: undefined,
   ids: [],
   isLoading: false,
@@ -18,24 +17,24 @@ const getPageCacheInitialState = <T extends PaginatedDataItem>(): PageCache<T> =
   page: 1
 })
 
-export const createPaginatedDataReducer = <T extends PaginatedDataItem>(module: string) => {
-  const initialState = getInitialState<T>()
+export const createPaginatedDataReducer = (module: string) => {
+  const initialState = getInitialState()
 
-  const actions = createPaginationActions<T>(module)
+  const actions = createPaginationActions(module)
   type PagingActionType = ActionType<typeof actions>
 
   const pageCacheReducer = (
-    cache = getPageCacheInitialState<T>(),
+    cache = getPageCacheInitialState(),
     action: PagingActionType
-  ): PageCache<T> => {
+  ): PageCache => {
     switch (action.type) {
       case getType(actions.requestPage): {
         const { page } = action.payload
         return { ...cache, page, isLoading: true }
       }
       case getType(actions.requestPageSuccess): {
-        const { data, fetchedAt } = action.payload
-        return { ...cache, ids: data.map(value => value.id), lastFetched: fetchedAt }
+        const { ids, fetchedAt } = action.payload
+        return { ...cache, ids, lastFetched: fetchedAt }
       }
       case getType(actions.requestPageError): {
         const { error } = action.payload
@@ -51,7 +50,7 @@ export const createPaginatedDataReducer = <T extends PaginatedDataItem>(module: 
     return { ...state, [page]: pageCacheReducer(state[page], action) }
   }
 
-  const reducer = (state = initialState, action: PagingActionType): PaginatedData<T> => {
+  const reducer = (state = initialState, action: PagingActionType): PaginatedData => {
     if (action.meta && action.meta.module !== module) {
       return state
     }
@@ -66,18 +65,24 @@ export const createPaginatedDataReducer = <T extends PaginatedDataItem>(module: 
         }
       }
       case getType(actions.requestPageSuccess): {
-        const { data, totalItems } = action.payload
-        const dataMap = data.reduce((acc, value) => ({ ...acc, [value.id]: value }), {})
+        const { totalItems } = action.payload
 
         return {
           ...state,
-          data: { ...state.data, ...dataMap },
           totalItems,
           pagesMap: pagesMapReducer(state.pagesMap, action)
         }
       }
       case getType(actions.requestPageError): {
         return { ...state, pagesMap: pagesMapReducer(state.pagesMap, action) }
+      }
+      case getType(actions.resetPaginator): {
+        return {
+          ...state,
+          currentPage: 1,
+          pagesMap: {},
+          totalItems: 0
+        }
       }
       default:
         return state

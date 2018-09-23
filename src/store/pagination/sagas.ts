@@ -2,18 +2,16 @@ import { put, takeEvery, select } from "redux-saga/effects"
 import { SagaIterator } from "redux-saga"
 import { isActionOf } from "typesafe-actions"
 import { Action } from "redux"
-import { PaginatedData, PaginatedDataItem } from "./types"
+import { PaginatedData } from "./types"
 import { ApplicationState } from "../"
 import { RequestPageAction, requestPage, requestPageApi } from "./actions"
 
-export type GetPaginationState<T extends PaginatedDataItem> = (
-  state: ApplicationState
-) => PaginatedData<T>
+export type GetPaginationState = (state: ApplicationState) => PaginatedData
 
-export const createPaginationSagas = <T extends PaginatedDataItem>(
+export const createPaginationSagas = (
   module: string,
   maxCacheMs: number,
-  getPaginationState: GetPaginationState<T>
+  getPaginationState: GetPaginationState
 ) => {
   const requestPageActionCreator = requestPage(module)
   const requestPageApiActionCreator = requestPageApi(module)
@@ -21,7 +19,7 @@ export const createPaginationSagas = <T extends PaginatedDataItem>(
   function* requestPageSaga(action: RequestPageAction) {
     const { page, itemsPerPage } = action.payload
 
-    const { pagesMap }: PaginatedData<T> = yield select(getPaginationState)
+    const { pagesMap }: PaginatedData = yield select(getPaginationState)
     const pageCache = pagesMap[page]
     if (!pageCache.lastFetched || Date.now() - pageCache.lastFetched > maxCacheMs) {
       yield put(requestPageApiActionCreator(page, itemsPerPage))

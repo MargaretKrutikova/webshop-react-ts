@@ -1,4 +1,3 @@
-import { PaginatedDataItem } from "./types"
 import { createAction } from "typesafe-actions"
 import { Action } from "redux"
 
@@ -16,8 +15,8 @@ interface RequestPageActionPayload {
   itemsPerPage: number
 }
 
-interface RequestPageSuccessActionPayload<T extends PaginatedDataItem> {
-  data: T[]
+interface RequestPageSuccessActionPayload {
+  ids: string[] | number[]
   totalItems: number
   page: number
   fetchedAt: number
@@ -31,8 +30,11 @@ export const requestPageApi = (module: string) =>
   createAction("REQUEST_PAGE_API", resolve => (page: number, itemsPerPage: number) =>
     resolve({ page, itemsPerPage }, { module })
   )
-const requestPageSuccess = <T extends PaginatedDataItem>(module: string) =>
-  createAction("REQUEST_PAGE_SUCCESS", resolve => (data: RequestPageSuccessActionPayload<T>) =>
+export const resetPaginator = (module: string) =>
+  createAction("RESET_PAGINATOR", resolve => () => resolve({ page: 1 }, { module }))
+
+const requestPageSuccess = (module: string) =>
+  createAction("REQUEST_PAGE_SUCCESS", resolve => (data: RequestPageSuccessActionPayload) =>
     resolve(data, { module })
   )
 const requestPageError = (module: string) =>
@@ -40,9 +42,10 @@ const requestPageError = (module: string) =>
     resolve({ error, page }, { module })
   )
 
-export default <T extends PaginatedDataItem>(module: string) => ({
+export default (module: string) => ({
   requestPageApi: requestPageApi(module),
   requestPage: requestPage(module),
-  requestPageSuccess: requestPageSuccess<T>(module),
-  requestPageError: requestPageError(module)
+  requestPageSuccess: requestPageSuccess(module),
+  requestPageError: requestPageError(module),
+  resetPaginator: resetPaginator(module)
 })
