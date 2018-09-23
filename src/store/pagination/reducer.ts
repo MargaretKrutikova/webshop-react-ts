@@ -2,9 +2,9 @@ import { PaginatedData, PageCache } from "./types"
 import { ActionType, getType } from "typesafe-actions"
 import createPaginationActions from "./actions"
 
-const getInitialState = (): PaginatedData => ({
+const getInitialState = (itemsPerPage: number): PaginatedData => ({
   currentPage: 1,
-  itemsPerPage: 10,
+  itemsPerPage,
   pagesMap: {},
   totalItems: 0
 })
@@ -17,8 +17,8 @@ const getPageCacheInitialState = (): PageCache => ({
   page: 1
 })
 
-export const createPaginatedDataReducer = (module: string) => {
-  const initialState = getInitialState()
+export const createPaginatedDataReducer = (module: string, initialItemsPerPage: number) => {
+  const initialState = getInitialState(initialItemsPerPage)
 
   const actions = createPaginationActions(module)
   type PagingActionType = ActionType<typeof actions>
