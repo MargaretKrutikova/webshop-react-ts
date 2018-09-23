@@ -6,11 +6,13 @@ import { actions, selectors, Product } from "store/products"
 
 // types
 type StateProps = {
-  products: Product[]
+  paginatedProducts: Product[]
+  currentPage: number
 }
 
 type DispatchProps = {
-  requestProducts: () => void
+  search: (searchTerm: string) => void
+  goToPage: (page: number, itemsPerPage: number) => void
 }
 
 type Props = StateProps & DispatchProps
@@ -18,20 +20,56 @@ type Props = StateProps & DispatchProps
 const enhance = compose<Props, {}>(
   connect<StateProps, DispatchProps>(
     createStructuredSelector({
-      products: selectors.getProductList
+      paginatedProducts: selectors.getCurrentPageItems,
+      currentPage: selectors.getCurrentPage
     }),
-    { requestProducts: actions.requestProducts }
+    {
+      goToPage: actions.goToPage,
+      search: actions.search
+    }
   )
 )
 
 class ProductListing extends React.Component<Props> {
-  componentDidMount() {
-    const { requestProducts } = this.props
-    requestProducts()
-  }
+  myRef: React.RefObject<HTMLInputElement> = React.createRef()
+
   render() {
-    const { products = [] } = this.props
-    return products.map(product => <div key={product.id}>{product.name}</div>)
+    const { paginatedProducts, goToPage, search, currentPage } = this.props
+    return (
+      <React.Fragment>
+        <div style={{ marginBottom: 20 }}>
+          <input placeholder="search" ref={this.myRef} />
+          <button
+            onClick={() => {
+              if (this.myRef.current) {
+                search(this.myRef.current.value)
+              }
+            }}
+          >
+            Search
+          </button>
+        </div>
+        <div style={{ marginBottom: 30 }}>
+          {[1, 2, 3, 4].map(value => (
+            <span
+              onClick={() => goToPage(value, 3)}
+              key={value}
+              style={{
+                padding: 8,
+                ...(currentPage === value
+                  ? { fontWeight: "bold", border: "1px dotted black" }
+                  : { cursor: "pointer" })
+              }}
+            >
+              {value}
+            </span>
+          ))}
+        </div>
+        {paginatedProducts.map(product => (
+          <div key={product.id}>{product.name}</div>
+        ))}
+      </React.Fragment>
+    )
   }
 }
 
