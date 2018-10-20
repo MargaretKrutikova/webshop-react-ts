@@ -1,22 +1,12 @@
-import {
-  call,
-  put,
-  takeLatest,
-  takeEvery,
-  fork,
-  select,
-  take,
-  // cancel,
-  race
-} from "redux-saga/effects"
-import pagination from "./pagination"
-import { isActionOf, ActionType, getType } from "typesafe-actions"
-import { PaginationModule } from "./types"
+import { call, put, takeLatest, takeEvery, fork, select, take, race } from "redux-saga/effects"
+import { paginationActions } from "./actions"
+import { ActionType, getType } from "typesafe-actions"
 import api, { ProductsApiResponse } from "api"
-import { RequestPageAction } from "../pagination"
+import { createPaginationSagas } from "../pagination"
 import actions from "./actions"
-import { Action } from "redux"
 import { ApplicationState } from "../"
+
+const cacheMs = 100000
 
 function* requestApiPage(
   page: number,
@@ -39,20 +29,18 @@ function* requestApiPage(
       page
     }
     if (resetPaginator) {
-      yield put(pagination.actions.resetPaginator())
+      yield put(paginationActions.resetPage())
     }
-    yield put(pagination.actions.requestPageSuccess(paginatedData))
+    yield put(paginationActions.setPageData(paginatedData))
   } catch (err) {
     const error = err instanceof Error ? err : new Error("An unknown error occured.")
-    yield put(pagination.actions.requestPageError(error, page))
+    yield put(paginationActions.setPageError({ error, page }))
   }
 }
 
 function* pagingSaga(searchTerm: string) {
-  return yield takeEvery<RequestPageAction>(
-    (action: Action) =>
-      isActionOf(pagination.actions.requestPageApi, action) &&
-      action.meta.module === PaginationModule,
+  return yield takeEvery<ActionType<typeof paginationActions.requestPageApi>>(
+    getType(paginationActions.requestPageApi),
     function*({ payload }) {
       const { page, itemsPerPage } = payload
       yield call<void, number, number, string>(requestApiPage, page, itemsPerPage, searchTerm)
@@ -61,8 +49,14 @@ function* pagingSaga(searchTerm: string) {
 }
 
 export function* productsSaga() {
+  const paginationSagas = createPaginationSagas(
+    paginationActions,
+    cacheMs,
+    state => state.pagination.products
+  )
+
   // start pagination saga
-  yield fork(pagination.saga)
+  yield fork(paginationSagas)
   let searchTerm: string = ""
 
   // search task
@@ -71,7 +65,7 @@ export function* productsSaga() {
   ) {
     searchTerm = action.payload
     const itemsPerPage = yield select(
-      (state: ApplicationState) => state.products.pagination.itemsPerPage
+      (state: ApplicationState) => state.pagination.products.itemsPerPage
     )
     yield call<void, number, number, string, boolean>(
       requestApiPage,
@@ -94,7 +88,7 @@ export function* productsSaga() {
     // OR
     yield race({
       task: call(pagingSaga, searchTerm),
-      cancel: take(getType(pagination.actions.resetPaginator))
+      cancel: take(getType(paginationActions.resetPage))
     })
   }
 }

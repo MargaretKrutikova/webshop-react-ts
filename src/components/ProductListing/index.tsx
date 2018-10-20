@@ -2,7 +2,7 @@ import * as React from "react"
 import { connect } from "react-redux"
 import { compose } from "recompose"
 import { createStructuredSelector } from "reselect"
-import { actions, selectors, Product } from "store/products"
+import { productsActions, productsSelectors, Product } from "store/products"
 
 // types
 type StateProps = {
@@ -20,12 +20,12 @@ type Props = StateProps & DispatchProps
 const enhance = compose<Props, {}>(
   connect<StateProps, DispatchProps>(
     createStructuredSelector({
-      paginatedProducts: selectors.getCurrentPageItems,
-      currentPage: selectors.getCurrentPage
+      paginatedProducts: productsSelectors.getCurrentPageItems,
+      currentPage: productsSelectors.getCurrentPage
     }),
     {
-      goToPage: actions.goToPage,
-      search: actions.search
+      goToPage: productsActions.goToPage,
+      search: productsActions.search
     }
   )
 )

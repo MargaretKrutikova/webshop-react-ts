@@ -1,15 +1,15 @@
-import { ProductsState, InnerProductsState, Product } from "./types"
-import { getType } from "typesafe-actions"
-import { ApplicationState } from "../"
-import actions, { ProductsAction } from "./actions"
-import pagination from "./pagination"
-import { combineReducers, Reducer } from "redux"
+import { ProductsState } from "./types"
+import { ActionType, getType } from "typesafe-actions"
+import { createPaginatedDataReducer } from "store/pagination"
+import actions, { paginationActions } from "./actions"
 
-const initialState: InnerProductsState = {
+const initialItemsPerPage = 3
+
+const initialState: ProductsState = {
   data: {}
 }
 
-const productsReducer = (state = initialState, action: ProductsAction): InnerProductsState => {
+const reducer = (state = initialState, action: ActionType<typeof actions>): ProductsState => {
   switch (action.type) {
     case getType(actions.searchProducts.request): {
       return { ...state, searchTerm: action.payload }
@@ -28,26 +28,8 @@ const productsReducer = (state = initialState, action: ProductsAction): InnerPro
       return state
   }
 }
-const getProductList = (state: ApplicationState) => state.products.inner.data
 
-const getCurrentPageItems = (state: ApplicationState): Product[] => {
-  const { data } = state.products.inner
-  const { pagesMap, currentPage } = state.products.pagination
-  if (!pagesMap[currentPage]) {
-    return []
-  }
-  const ids = pagesMap[currentPage].ids as string[]
-  return ids.map(id => data[id.toString()])
-}
+const paginationReducer = createPaginatedDataReducer(paginationActions, initialItemsPerPage)
 
-const getCurrentPage = (state: ApplicationState): number => {
-  return state.products.pagination.currentPage
-}
-
-const reducer: Reducer<ProductsState> = combineReducers({
-  pagination: pagination.reducer,
-  inner: productsReducer
-})
-
-export const selectors = { getProductList, getCurrentPageItems, getCurrentPage }
+export { initialItemsPerPage, paginationReducer }
 export default reducer
