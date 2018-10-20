@@ -1,4 +1,4 @@
-export interface PageCache {
+interface PageCache {
   readonly page: number
   readonly isLoading: boolean
   readonly error?: Error
@@ -6,9 +6,15 @@ export interface PageCache {
   readonly lastFetched?: number
 }
 
-export interface PaginatedData {
+interface PagesMap {
+  [key: number]: PageCache
+}
+
+interface PaginatedData {
   readonly currentPage: number
   readonly itemsPerPage: number
   readonly totalItems: number
-  readonly pagesMap: { [key: number]: PageCache }
+  readonly pagesMap: PagesMap
 }
+
+export { PageCache, PaginatedData, PagesMap }

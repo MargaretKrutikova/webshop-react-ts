@@ -1,6 +1,6 @@
-import { PaginatedData, PageCache } from "./types"
+import { PaginatedData, PageCache, PagesMap } from "./types"
 import { ActionType, getType } from "typesafe-actions"
-import createPaginationActions from "./actions"
+import { PaginationActions } from "./actions"
 
 const getInitialState = (itemsPerPage: number): PaginatedData => ({
   currentPage: 1,
@@ -17,27 +17,28 @@ const getPageCacheInitialState = (): PageCache => ({
   page: 1
 })
 
-export const createPaginatedDataReducer = (module: string, initialItemsPerPage: number) => {
-  const initialState = getInitialState(initialItemsPerPage)
+export const createPaginatedDataReducer = (
+  actions: PaginationActions,
+  initialItemsPerPage: number
+) => {
+  const { requestPage, setPageData, setPageError, resetPage } = actions
+  const pageActions = { requestPage, setPageData, setPageError }
 
-  const actions = createPaginationActions(module)
-  type PagingActionType = ActionType<typeof actions>
-
-  const pageCacheReducer = (
+  const updatePageCache = (
     cache = getPageCacheInitialState(),
-    action: PagingActionType
+    action: ActionType<typeof pageActions>
   ): PageCache => {
     switch (action.type) {
-      case getType(actions.requestPage): {
-        const { page } = action.payload
+      case getType(requestPage): {
+        const { page } = (action as ActionType<typeof requestPage>).payload
         return { ...cache, page, isLoading: true }
       }
-      case getType(actions.requestPageSuccess): {
-        const { ids, fetchedAt } = action.payload
+      case getType(setPageData): {
+        const { ids, fetchedAt } = (action as ActionType<typeof setPageData>).payload
         return { ...cache, ids, lastFetched: fetchedAt }
       }
-      case getType(actions.requestPageError): {
-        const { error } = action.payload
+      case getType(setPageError): {
+        const { error } = (action as ActionType<typeof setPageError>).payload
         return { ...cache, error }
       }
       default:
@@ -45,38 +46,45 @@ export const createPaginatedDataReducer = (module: string, initialItemsPerPage: 
     }
   }
 
-  const pagesMapReducer = (state: typeof initialState.pagesMap = {}, action: PagingActionType) => {
+  const updatePagesMap = (
+    state: PagesMap = {},
+    action: ActionType<typeof pageActions>
+  ): PagesMap => {
     const { page } = action.payload
-    return { ...state, [page]: pageCacheReducer(state[page], action) }
+    return { ...state, [page]: updatePageCache(state[page], action) }
   }
 
-  const reducer = (state = initialState, action: PagingActionType): PaginatedData => {
-    if (action.meta && action.meta.module !== module) {
-      return state
-    }
+  const reducer = (
+    state = getInitialState(initialItemsPerPage),
+    action: ActionType<typeof actions>
+  ): PaginatedData => {
     switch (action.type) {
-      case getType(actions.requestPage): {
-        const { page, itemsPerPage } = action.payload
+      case getType(requestPage): {
+        const typedAction = action as ActionType<typeof requestPage>
+        const { page, itemsPerPage } = typedAction.payload
+
         return {
           ...state,
           currentPage: page,
           itemsPerPage,
-          pagesMap: pagesMapReducer(state.pagesMap, action)
+          pagesMap: updatePagesMap(state.pagesMap, typedAction)
         }
       }
-      case getType(actions.requestPageSuccess): {
-        const { totalItems } = action.payload
+      case getType(setPageData): {
+        const typedAction = action as ActionType<typeof setPageData>
+        const { totalItems } = typedAction.payload
 
         return {
           ...state,
           totalItems,
-          pagesMap: pagesMapReducer(state.pagesMap, action)
+          pagesMap: updatePagesMap(state.pagesMap, typedAction)
         }
       }
-      case getType(actions.requestPageError): {
-        return { ...state, pagesMap: pagesMapReducer(state.pagesMap, action) }
+      case getType(setPageError): {
+        const typedAction = action as ActionType<typeof setPageError>
+        return { ...state, pagesMap: updatePagesMap(state.pagesMap, typedAction) }
       }
-      case getType(actions.resetPaginator): {
+      case getType(resetPage): {
         return {
           ...state,
           currentPage: 1,
@@ -88,6 +96,5 @@ export const createPaginatedDataReducer = (module: string, initialItemsPerPage: 
         return state
     }
   }
-
-  return { reducer, actions }
+  return reducer
 }

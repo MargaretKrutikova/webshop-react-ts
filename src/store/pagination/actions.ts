@@ -1,51 +1,59 @@
 import { createAction } from "typesafe-actions"
-import { Action } from "redux"
+import { ActionCreator, StringType, PayloadCreator } from "typesafe-actions/dist/types"
 
-export interface RequestPageAction extends PaginationAction {
-  payload: RequestPageActionPayload
-}
-interface PaginationAction extends Action {
-  meta: PaginationActionMeta
-}
-interface PaginationActionMeta {
-  module: string
-}
 interface RequestPageActionPayload {
   page: number
   itemsPerPage: number
 }
 
-interface RequestPageSuccessActionPayload {
+interface SetPageDataActionPayload {
   ids: string[] | number[]
   totalItems: number
   page: number
   fetchedAt: number
 }
 
-export const requestPage = (module: string) =>
-  createAction("REQUEST_PAGE", resolve => (page: number, itemsPerPage: number) =>
-    resolve({ page, itemsPerPage }, { module })
-  )
-export const requestPageApi = (module: string) =>
-  createAction("REQUEST_PAGE_API", resolve => (page: number, itemsPerPage: number) =>
-    resolve({ page, itemsPerPage }, { module })
-  )
-export const resetPaginator = (module: string) =>
-  createAction("RESET_PAGINATOR", resolve => () => resolve({ page: 1 }, { module }))
+interface SetPageErrorActionPayload {
+  error: Error
+  page: number
+}
 
-const requestPageSuccess = (module: string) =>
-  createAction("REQUEST_PAGE_SUCCESS", resolve => (data: RequestPageSuccessActionPayload) =>
-    resolve(data, { module })
-  )
-const requestPageError = (module: string) =>
-  createAction("REQUEST_PAGE_ERROR", resolve => (error: Error, page: number) =>
-    resolve({ error, page }, { module })
-  )
+type RequestPage = PayloadCreator<StringType, RequestPageActionPayload>
+type SetPageData = PayloadCreator<StringType, SetPageDataActionPayload>
+type SetPageError = PayloadCreator<StringType, SetPageErrorActionPayload>
+type ResetPage = ActionCreator
 
-export default (module: string) => ({
-  requestPageApi: requestPageApi(module),
-  requestPage: requestPage(module),
-  requestPageSuccess: requestPageSuccess(module),
-  requestPageError: requestPageError(module),
-  resetPaginator: resetPaginator(module)
+const createRequestPage = (type: StringType): RequestPage =>
+  createAction(type, resolve => (payload: RequestPageActionPayload) => resolve(payload))
+
+const createSetPageData = (type: StringType): SetPageData =>
+  createAction(type, resolve => (payload: SetPageDataActionPayload) => resolve(payload))
+
+const createSetPageError = (type: StringType): SetPageError =>
+  createAction(type, resolve => (payload: SetPageErrorActionPayload) => resolve(payload))
+
+const createResetPageError = (type: StringType): ResetPage => createAction(type)
+
+type PaginationActions = {
+  requestPage: RequestPage
+  requestPageApi: RequestPage
+  setPageData: SetPageData
+  setPageError: SetPageError
+  resetPage: ResetPage
+}
+
+const createPaginationActions = (
+  requestPageType: string,
+  requestPageApiType: string,
+  setPageDataType: string,
+  setPageErrorType: string,
+  resetPageType: string
+): PaginationActions => ({
+  requestPage: createRequestPage(requestPageType),
+  requestPageApi: createRequestPage(requestPageApiType),
+  setPageData: createSetPageData(setPageDataType),
+  setPageError: createSetPageError(setPageErrorType),
+  resetPage: createResetPageError(resetPageType)
 })
+
+export { PaginationActions, createPaginationActions }
