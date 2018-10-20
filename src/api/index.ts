@@ -15,7 +15,7 @@ export type ProductsApiResponse = {
   data: Product[]
 }
 
-const Products = {
+const products = {
   getProducts: () => request.get<ProductsApiResponse>(`/products`).then(resp => resp.data.data),
   getProductsPaginated: (page: number, itemsPerPage: number): Promise<ProductsApiResponse> =>
     request
@@ -39,4 +39,4 @@ const Products = {
     })
 }
 
-export default { Products }
+export default { products }

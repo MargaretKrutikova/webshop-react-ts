@@ -11,4 +11,4 @@ in package json:
 ## Add redux
 
 yarn add redux react-redux recompose typesafe-actions reselect
-yarn add @types/react-redux @types/recompose --dev
+yarn add @types/react-redux @types/recompose redux-logger @types/redux-logger redux-devtools-extension --dev

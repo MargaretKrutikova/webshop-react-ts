@@ -1,4 +1,14 @@
-import { call, put, takeLatest, takeEvery, fork, select, take, cancel } from "redux-saga/effects"
+import {
+  call,
+  put,
+  takeLatest,
+  takeEvery,
+  fork,
+  select,
+  take,
+  // cancel,
+  race
+} from "redux-saga/effects"
 import pagination from "./pagination"
 import { isActionOf, ActionType, getType } from "typesafe-actions"
 import { PaginationModule } from "./types"
@@ -16,8 +26,8 @@ function* requestApiPage(
 ) {
   try {
     const apiCall = searchTerm
-      ? () => api.Products.searchProducts(searchTerm, page, itemsPerPage)
-      : () => api.Products.getProductsPaginated(page, itemsPerPage)
+      ? () => api.products.searchProducts(searchTerm, page, itemsPerPage)
+      : () => api.products.getProductsPaginated(page, itemsPerPage)
 
     const response: ProductsApiResponse = yield call<Promise<ProductsApiResponse>>(apiCall)
     yield put(actions.updateProducts(response.data))
@@ -74,10 +84,18 @@ export function* productsSaga() {
 
   while (true) {
     // paging task
-    const paging = yield fork(pagingSaga, searchTerm)
+    // const paging = yield fork(pagingSaga, searchTerm)
 
-    yield take(getType(pagination.actions.resetPaginator))
-    yield cancel(paging)
+    // yield take(getType(pagination.actions.resetPaginator))
+
+    // cancel all pending paging requests since they will return obsolete data
+    // yield cancel(paging)
+
+    // OR
+    yield race({
+      task: call(pagingSaga, searchTerm),
+      cancel: take(getType(pagination.actions.resetPaginator))
+    })
   }
 }
 
