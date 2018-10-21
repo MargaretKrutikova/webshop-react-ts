@@ -21,25 +21,27 @@ export const createPaginatedDataReducer = (
   actions: PaginationActions,
   initialItemsPerPage: number
 ) => {
-  const { requestPage, setPageData, setPageError, resetPage } = actions
-  const pageActions = { requestPage, setPageData, setPageError }
+  const { resetPage, ...pageActions } = actions
+  const { requestPage, requestPageApi, setPageData, setPageError } = pageActions
 
   const updatePageCache = (
     cache = getPageCacheInitialState(),
     action: ActionType<typeof pageActions>
   ): PageCache => {
     switch (action.type) {
-      case getType(requestPage): {
+      case getType(requestPage):
+      case getType(requestPageApi): {
         const { page } = (action as ActionType<typeof requestPage>).payload
-        return { ...cache, page, isLoading: true }
+        const isApiRequest = action.type === getType(requestPageApi)
+        return { ...cache, page, isLoading: isApiRequest }
       }
       case getType(setPageData): {
         const { ids, fetchedAt } = (action as ActionType<typeof setPageData>).payload
-        return { ...cache, ids, lastFetched: fetchedAt }
+        return { ...cache, isLoading: false, ids, lastFetched: fetchedAt }
       }
       case getType(setPageError): {
         const { error } = (action as ActionType<typeof setPageError>).payload
-        return { ...cache, error }
+        return { ...cache, isLoading: false, error }
       }
       default:
         return cache
@@ -59,7 +61,8 @@ export const createPaginatedDataReducer = (
     action: ActionType<typeof actions>
   ): PaginatedData => {
     switch (action.type) {
-      case getType(requestPage): {
+      case getType(requestPage):
+      case getType(requestPageApi): {
         const typedAction = action as ActionType<typeof requestPage>
         const { page, itemsPerPage } = typedAction.payload
 
