@@ -36,7 +36,7 @@ class ProductListing extends React.Component<Props> {
   render() {
     const { paginatedProducts, goToPage, search, currentPage } = this.props
     return (
-      <React.Fragment>
+      <>
         <div style={{ marginBottom: 20 }}>
           <input placeholder="search" ref={this.myRef} />
           <button
@@ -68,7 +68,7 @@ class ProductListing extends React.Component<Props> {
         {paginatedProducts.map(product => (
           <div key={product.id}>{product.name}</div>
         ))}
-      </React.Fragment>
+      </>
     )
   }
 }
